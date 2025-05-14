@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
+
 
 class AuthController extends Controller
 {
@@ -30,7 +32,7 @@ class AuthController extends Controller
 
         $user = User::create($validatedData);
 
-        $token = $user->createToken('ReviveGoods')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
             'message' => 'Registration Successful!',
@@ -50,8 +52,14 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required|min:5',
         ]);
-    
+
         if ($token = JWTAuth::attempt($credentials)) {
+            $user = Auth::user();
+
+            if (!$user->is_active) {
+                return response()->json(['error' => 'Account is deactivated'], 403);
+            }
+
             return response()->json([
                 'message' => 'Login successful',
                 'token' => $token,
@@ -61,12 +69,33 @@ class AuthController extends Controller
         }
     }
 
-    public function logout(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+    public function logout()
+    {
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+    
+            return response()->json(['message' => 'Successfully logged out']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to logout, token invalid'], 500);
+        }
+    }    
+
+
+    public function deactivateAccount(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+        /** @var User $user */
+
+        $user->is_active = false;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Account has been deactivated successfully.'
+        ]);
     }
 }
