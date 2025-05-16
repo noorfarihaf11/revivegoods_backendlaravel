@@ -47,27 +47,34 @@ class AuthController extends Controller
     }
 
     public function authenticate(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|min:5',
-        ]);
+{
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|min:5',
+    ]);
 
-        if ($token = JWTAuth::attempt($credentials)) {
-            $user = Auth::user();
+    if ($token = JWTAuth::attempt($credentials)) {
+        $user = Auth::user();
 
-            if (!$user->is_active) {
-                return response()->json(['error' => 'Account is deactivated'], 403);
-            }
-
-            return response()->json([
-                'message' => 'Login successful',
-                'token' => $token,
-            ]);
-        } else {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if (!$user->is_active) {
+            return response()->json(['error' => 'Account is deactivated'], 403);
         }
+
+        return response()->json([
+            'message' => 'Login successful',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id_user,
+                'name' => $user->name,
+                'email' => $user->email,
+                // tambahkan data lain jika perlu
+            ],
+        ]);
+    } else {
+        return response()->json(['error' => 'Unauthorized'], 401);
     }
+}
+
 
 
     public function logout()
