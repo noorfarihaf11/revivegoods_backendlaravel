@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PickupItem;
 use App\Models\User;
+use App\Models\CoinTransaction;
 use App\Models\PickupRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,9 +63,49 @@ class PickupRequestController extends Controller
 
     public function getPickupData(Request $request)
     {
-        $id_user = Auth::id();  // ambil id user yang login
+        $user = Auth::user();
 
-        $pickupData = PickupRequest::where('id_user', $id_user)->get()->map(function ($pickup) {
+        // Ambil semua pickup milik user
+        $pickupList = PickupRequest::where('id_user', $user->id_user)->get();
+
+        foreach ($pickupList as $pickup) {
+            if (
+                $pickup->status === 'requested' &&
+                now()->diffInHours($pickup->scheduled_at, false) <= -3
+            ) {
+                // Ubah status
+                $pickup->status = 'completed';
+                $pickup->save();
+
+                // Cek apakah sudah diberi koin sebelumnya
+                $alreadyRewarded = CoinTransaction::where([
+                    ['id_user', '=', $pickup->id_user],
+                    ['source', '=', 'pickup'],
+                    ['amount', '=', $pickup->total_coins],
+                ])->exists();
+
+                if (!$alreadyRewarded) {
+                    // Tambahkan transaksi coin
+                    CoinTransaction::create([
+                        'id_user' => $pickup->id_user,
+                        'type' => 'earn',
+                        'amount' => $pickup->total_coins,
+                        'source' => 'pickup',
+                    ]);
+
+                    // Tambahkan coin ke user
+                    $user = User::find($pickup->id_user);
+
+                    if ($user) {
+                        $user->coins += $pickup->total_coins;
+                        $user->save();
+                    }
+                }
+            }
+        }
+
+        // Ambil ulang untuk response
+        $pickupData = $pickupList->map(function ($pickup) {
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
                 'scheduled_at' => $pickup->scheduled_at,
