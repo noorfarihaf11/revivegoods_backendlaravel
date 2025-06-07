@@ -65,7 +65,6 @@ class PickupRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil semua pickup milik user
         $pickupList = PickupRequest::where('id_user', $user->id_user)->get();
 
         foreach ($pickupList as $pickup) {
