@@ -21,7 +21,8 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']); // tambahkan ini jika belum
     Route::post('/pickuprequest', [PickupRequestController::class, 'store']);
     Route::get('/history', [PickupRequestController::class, 'getPickupData']);
-    Route::get('/user', [HomeController::class, 'getUserData']);
+    Route::get('/home', [HomeController::class, 'getHomeData']);
+    Route::post('/redeem', [ExchangeController::class, 'redeem']);
 });
 
 Route::post('/register', [AuthController::class, 'register']);

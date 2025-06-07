@@ -6,13 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExchangeRequest extends Model
 {
+
+    protected $primaryKey = 'id';
+    protected $fillable = ['id_user', 'id_exchangeitem', 'status'];
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function item()
+    public function exchangeItem()
     {
-        return $this->belongsTo(ExchangeItem::class, 'exchange_item_id');
+        return $this->belongsTo(ExchangeItem::class, 'id_exchangeitem');
     }
 }
