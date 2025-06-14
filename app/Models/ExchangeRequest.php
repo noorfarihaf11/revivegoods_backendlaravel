@@ -8,11 +8,11 @@ class ExchangeRequest extends Model
 {
 
     protected $primaryKey = 'id';
-    protected $fillable = ['id_user', 'id_exchangeitem', 'status'];
+    protected $fillable = ['id_user', 'id_exchangeitem', 'status','address'];
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_user');
     }
 
     public function exchangeItem()

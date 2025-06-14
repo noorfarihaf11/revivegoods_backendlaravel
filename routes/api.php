@@ -23,6 +23,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/history', [PickupRequestController::class, 'getPickupData']);
     Route::get('/home', [HomeController::class, 'getHomeData']);
     Route::post('/redeem', [ExchangeController::class, 'redeem']);
+    Route::get('/exchange', [ExchangeController::class, 'index']);
 });
 
 Route::post('/register', [AuthController::class, 'register']);

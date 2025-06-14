@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('id_user')->nullable();
             $table->foreign('id_user')->references('id_user')->on('users');
-            $table->enum('type', ['earn', 'redeem']);
+            $table->enum('type', ['earn', 'redeem']);   
             $table->integer('amount');
             $table->string('source')->nullable();
             $table->timestamps();
