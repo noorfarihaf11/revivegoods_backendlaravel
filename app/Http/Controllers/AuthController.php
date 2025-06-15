@@ -21,9 +21,8 @@ class AuthController extends Controller
         return view('/register');
     }
 
-    public function register(Request $request)
-{
-    try {
+  public function register(Request $request)
+    {
         $validatedData = $request->validate([
             'name' => 'required|max:60',
             'email' => 'required|email|unique:users,email|max:200',
@@ -31,24 +30,17 @@ class AuthController extends Controller
         ]);
 
         $validatedData['password'] = bcrypt($validatedData['password']);
+
         $user = User::create($validatedData);
-        $token = JWTAuth::fromUser($user);
+
+        $token = $user->createToken('ReviveGoods')->plainTextToken;
 
         return response()->json([
             'message' => 'Registration Successful!',
             'user' => $user,
             'token' => $token,
         ], 201);
-
-    } catch (\Exception $e) {
-        Log::error('Registration failed: '.$e->getMessage());
-        return response()->json([
-            'message' => 'Terjadi kesalahan saat mendaftar.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
-
 
     public function login()
     {
