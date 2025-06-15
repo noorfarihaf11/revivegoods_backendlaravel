@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 
 class AuthController extends Controller
@@ -22,23 +23,40 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|max:60',
-            'email' => 'required|email|unique:users,email|max:200',
-            'password' => 'required|min:5',
-        ]);
+        Log::info('Memulai proses register', $request->all());
 
-        $validatedData['password'] = bcrypt($validatedData['password']);
+        try {
+            $validatedData = $request->validate([
+                'name' => 'required|max:60',
+                'email' => 'required|email|unique:users,email|max:200',
+                'password' => 'required|min:5',
+            ]);
 
-        $user = User::create($validatedData);
+            Log::info('Data validasi berhasil', $validatedData);
 
-        $token = JWTAuth::fromUser($user);
+            $validatedData['password'] = bcrypt($validatedData['password']);
 
-        return response()->json([
-            'message' => 'Registration Successful!',
-            'user' => $user,
-            'token' => $token,
-        ], 201);
+            $user = User::create($validatedData);
+
+            Log::info('User berhasil dibuat', ['id' => $user->id]);
+
+            $token = JWTAuth::fromUser($user);
+
+            Log::info('Token berhasil dibuat');
+
+            return response()->json([
+                'message' => 'Registration Successful!',
+                'user' => $user,
+                'token' => $token,
+            ], 201);
+
+        } catch (Exception $e) {
+            Log::error('Terjadi error saat register: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat mendaftar.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function login()
