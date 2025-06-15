@@ -22,42 +22,33 @@ class AuthController extends Controller
     }
 
     public function register(Request $request)
-    {
-        Log::info('Memulai proses register', $request->all());
+{
+    try {
+        $validatedData = $request->validate([
+            'name' => 'required|max:60',
+            'email' => 'required|email|unique:users,email|max:200',
+            'password' => 'required|min:5',
+        ]);
 
-        try {
-            $validatedData = $request->validate([
-                'name' => 'required|max:60',
-                'email' => 'required|email|unique:users,email|max:200',
-                'password' => 'required|min:5',
-            ]);
+        $validatedData['password'] = bcrypt($validatedData['password']);
+        $user = User::create($validatedData);
+        $token = JWTAuth::fromUser($user);
 
-            Log::info('Data validasi berhasil', $validatedData);
+        return response()->json([
+            'message' => 'Registration Successful!',
+            'user' => $user,
+            'token' => $token,
+        ], 201);
 
-            $validatedData['password'] = bcrypt($validatedData['password']);
-
-            $user = User::create($validatedData);
-
-            Log::info('User berhasil dibuat', ['id' => $user->id]);
-
-            $token = JWTAuth::fromUser($user);
-
-            Log::info('Token berhasil dibuat');
-
-            return response()->json([
-                'message' => 'Registration Successful!',
-                'user' => $user,
-                'token' => $token,
-            ], 201);
-
-        } catch (Exception $e) {
-            Log::error('Terjadi error saat register: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Terjadi kesalahan saat mendaftar.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        Log::error('Registration failed: '.$e->getMessage());
+        return response()->json([
+            'message' => 'Terjadi kesalahan saat mendaftar.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
     public function login()
     {
