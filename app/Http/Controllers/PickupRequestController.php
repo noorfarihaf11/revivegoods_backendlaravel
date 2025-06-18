@@ -8,6 +8,8 @@ use App\Models\CoinTransaction;
 use App\Models\PickupRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
 
 class PickupRequestController extends Controller
 {
@@ -16,7 +18,7 @@ class PickupRequestController extends Controller
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.id_donationitem' => 'required|integer|exists:donation_items,id_donationitem',
-            'scheduled_at' => 'required|date_format:Y-m-d H:i:s',
+            'scheduled_at' => 'required|date',
             'address' => 'required|string|max:255',
             'total_coins' => 'required|integer|min:0',
         ]);
@@ -27,7 +29,7 @@ class PickupRequestController extends Controller
         // Simpan pickup request
         $pickup = PickupRequest::create([
             'id_user' => $user->id_user,
-            'scheduled_at' => $request->scheduled_at,
+            'scheduled_at' => Carbon::parse($request->scheduled_at)->setTimezone('UTC'),
             'status' => 'requested',
             'address' => $request->address,
             'total_coins' => $request->total_coins, // dari frontend
@@ -41,7 +43,9 @@ class PickupRequestController extends Controller
         }
 
         // Ambil ulang untuk response
-        $pickupWithItems = PickupRequest::with(['items.donationItem'])->find($pickup->id_pickupreq);
+        $pickupWithItems = PickupRequest::with(['items.donationItem'])
+            ->findOrFail($pickup->id_pickupreq);
+
 
         return response()->json([
             'message' => 'Pickup request submitted successfully.',
@@ -70,7 +74,7 @@ class PickupRequestController extends Controller
         foreach ($pickupList as $pickup) {
             if (
                 $pickup->status === 'requested' &&
-                now()->diffInHours($pickup->scheduled_at, false) <= -3
+                Carbon::now()->lessThanOrEqualTo($pickup->scheduled_at->subHours(3))
             ) {
                 // Ubah status
                 $pickup->status = 'completed';
@@ -110,6 +114,7 @@ class PickupRequestController extends Controller
                 'scheduled_at' => $pickup->scheduled_at,
                 'address' => $pickup->address,
                 'status' => $pickup->status,
+                'total_coins' => $pickup->total_coins,
             ];
         });
 
