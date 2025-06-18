@@ -17,7 +17,7 @@ class PickupRequest extends Model
     ];
 
     protected $casts = [
-        'scheduled_at' => 'string',
+        'scheduled_at' => 'datetime:Y-m-d H:i:s',
     ];
 
     public function user()
