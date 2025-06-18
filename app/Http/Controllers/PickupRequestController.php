@@ -9,6 +9,7 @@ use App\Models\PickupRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 
 class PickupRequestController extends Controller
@@ -74,14 +75,12 @@ class PickupRequestController extends Controller
         foreach ($pickupList as $pickup) {
             if (
                 $pickup->status === 'requested' &&
-                $pickup->scheduled_at && // pastikan tidak null
+                $pickup->scheduled_at &&
                 Carbon::now()->lessThanOrEqualTo(Carbon::parse($pickup->scheduled_at)->subHours(3))
             ) {
-                // Ubah status
                 $pickup->status = 'completed';
                 $pickup->save();
 
-                // Cek apakah sudah diberi koin sebelumnya
                 $alreadyRewarded = CoinTransaction::where([
                     ['id_user', '=', $pickup->id_user],
                     ['source', '=', 'pickup'],
@@ -89,7 +88,6 @@ class PickupRequestController extends Controller
                 ])->exists();
 
                 if (!$alreadyRewarded) {
-                    // Tambahkan transaksi coin
                     CoinTransaction::create([
                         'id_user' => $pickup->id_user,
                         'type' => 'earn',
@@ -97,9 +95,7 @@ class PickupRequestController extends Controller
                         'source' => 'pickup',
                     ]);
 
-                    // Tambahkan coin ke user
                     $user = User::find($pickup->id_user);
-
                     if ($user) {
                         $user->coins += $pickup->total_coins;
                         $user->save();
@@ -108,17 +104,20 @@ class PickupRequestController extends Controller
             }
         }
 
-        // Ambil ulang untuk response
         $pickupData = $pickupList->map(function ($pickup) {
+            // Pastikan scheduled_at tidak dikonversi ke zona waktu lain
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-                'scheduled_at' => $pickup->scheduled_at,
+                'scheduled_at' => $pickup->scheduled_at instanceof \Carbon\Carbon
+                    ? $pickup->scheduled_at->toDateTimeString() // Konversi Carbon ke string
+                    : $pickup->scheduled_at, // Gunakan string mentah
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
             ];
-        });
+        })->toArray();
 
+        Log::info('Pickup data response: ' . json_encode($pickupData));
         return response()->json(['pickupData' => $pickupData]);
     }
 }
