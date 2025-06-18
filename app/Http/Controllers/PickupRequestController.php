@@ -26,10 +26,13 @@ class PickupRequestController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        // Simpan scheduled_at langsung tanpa konversi timezone
+        // Simpan pickup request - konversi dari Asia/Jakarta ke UTC untuk disimpan
+        $scheduledAt = Carbon::parse($request->scheduled_at); // Biarkan waktu lokal
+
+
         $pickup = PickupRequest::create([
             'id_user' => $user->id_user,
-            'scheduled_at' => $request->scheduled_at, // Tidak diubah
+            'scheduled_at' => $scheduledAt,
             'status' => 'requested',
             'address' => $request->address,
             'total_coins' => $request->total_coins,
@@ -49,7 +52,7 @@ class PickupRequestController extends Controller
             'pickup_request' => [
                 'id_pickupreq' => $pickupWithItems->id_pickupreq,
                 'status' => $pickupWithItems->status,
-                'scheduled_at' => $pickupWithItems->scheduled_at->format('Y-m-d H:i:s'), // tampilkan apa adanya
+                'scheduled_at' => Carbon::parse($pickupWithItems->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
                 'address' => $pickupWithItems->address,
                 'total_coins' => $pickupWithItems->total_coins,
                 'items' => $pickupWithItems->items->map(function ($item) {
@@ -107,7 +110,7 @@ class PickupRequestController extends Controller
         $pickupData = $pickupList->map(function ($pickup) {
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-                'scheduled_at' => $pickup->scheduled_at,
+               'scheduled_at' => $pickup->scheduled_at,
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
@@ -118,4 +121,6 @@ class PickupRequestController extends Controller
 
         return response()->json(['pickupData' => $pickupData]);
     }
+
+
 }
