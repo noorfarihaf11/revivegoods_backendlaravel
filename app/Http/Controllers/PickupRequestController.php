@@ -52,7 +52,7 @@ class PickupRequestController extends Controller
             'pickup_request' => [
                 'id_pickupreq' => $pickupWithItems->id_pickupreq,
                 'status' => $pickupWithItems->status,
-              // SEBELUM
+                // SEBELUM
                 'scheduled_at' => Carbon::parse($pickupWithItems->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
                 'address' => $pickupWithItems->address,
                 'total_coins' => $pickupWithItems->total_coins,
@@ -111,17 +111,18 @@ class PickupRequestController extends Controller
         $pickupData = $pickupList->map(function ($pickup) {
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-               'scheduled_at' => $pickup->scheduled_at,
+                'scheduled_at' => Carbon::parse($pickup->scheduled_at)
+                    ->timezone('Asia/Jakarta')
+                    ->toDateTimeString(), // atau ->toIso8601String() jika mau format ISO
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
             ];
         })->toArray();
 
+
         Log::info('Pickup data response: ' . json_encode($pickupData));
 
         return response()->json(['pickupData' => $pickupData]);
     }
-
-
 }
