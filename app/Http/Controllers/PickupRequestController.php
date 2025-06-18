@@ -76,7 +76,7 @@ class PickupRequestController extends Controller
             if (
                 $pickup->status === 'requested' &&
                 $pickup->scheduled_at &&
-                Carbon::now()->lessThanOrEqualTo(Carbon::parse($pickup->scheduled_at)->subHours(3))
+                Carbon::now()->greaterThanOrEqualTo(Carbon::parse($pickup->scheduled_at)->addHours(3))
             ) {
                 $pickup->status = 'completed';
                 $pickup->save();

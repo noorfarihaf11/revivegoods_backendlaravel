@@ -16,6 +16,10 @@ class PickupRequest extends Model
         'total_coins',
     ];
 
+    protected $casts = [
+        'scheduled_at' => 'string',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
