@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-
 class PickupRequestController extends Controller
 {
     public function store(Request $request)
@@ -27,33 +26,32 @@ class PickupRequestController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        // Simpan pickup request
+        // Simpan pickup request - konversi dari Asia/Jakarta ke UTC untuk disimpan
+        $scheduledAtUtc = Carbon::parse($request->scheduled_at, 'Asia/Jakarta')->timezone('UTC');
+
         $pickup = PickupRequest::create([
             'id_user' => $user->id_user,
-            'scheduled_at' => Carbon::parse($request->scheduled_at)->setTimezone('UTC'),
+            'scheduled_at' => $scheduledAtUtc,
             'status' => 'requested',
             'address' => $request->address,
-            'total_coins' => $request->total_coins, // dari frontend
+            'total_coins' => $request->total_coins,
         ]);
 
-        // Simpan item-item
         foreach ($request->items as $item) {
             $pickup->items()->create([
                 'id_donationitem' => $item['id_donationitem'],
             ]);
         }
 
-        // Ambil ulang untuk response
         $pickupWithItems = PickupRequest::with(['items.donationItem'])
             ->findOrFail($pickup->id_pickupreq);
-
 
         return response()->json([
             'message' => 'Pickup request submitted successfully.',
             'pickup_request' => [
                 'id_pickupreq' => $pickupWithItems->id_pickupreq,
                 'status' => $pickupWithItems->status,
-                'scheduled_at' => $pickupWithItems->scheduled_at,
+                'scheduled_at' => Carbon::parse($pickupWithItems->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
                 'address' => $pickupWithItems->address,
                 'total_coins' => $pickupWithItems->total_coins,
                 'items' => $pickupWithItems->items->map(function ($item) {
@@ -73,10 +71,14 @@ class PickupRequestController extends Controller
         $pickupList = PickupRequest::where('id_user', $user->id_user)->get();
 
         foreach ($pickupList as $pickup) {
+            // Gunakan waktu UTC dan bandingkan dengan sekarang (juga dalam UTC)
+            $scheduledAtUtc = Carbon::parse($pickup->scheduled_at);
+            $nowUtc = Carbon::now('UTC');
+
             if (
                 $pickup->status === 'requested' &&
-                $pickup->scheduled_at &&
-                Carbon::now()->greaterThanOrEqualTo(Carbon::parse($pickup->scheduled_at)->addHours(3))
+                $scheduledAtUtc &&
+                $nowUtc->greaterThanOrEqualTo($scheduledAtUtc->addHours(3))
             ) {
                 $pickup->status = 'completed';
                 $pickup->save();
@@ -105,12 +107,9 @@ class PickupRequestController extends Controller
         }
 
         $pickupData = $pickupList->map(function ($pickup) {
-            // Pastikan scheduled_at tidak dikonversi ke zona waktu lain
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-                'scheduled_at' => $pickup->scheduled_at instanceof \Carbon\Carbon
-                    ? $pickup->scheduled_at->timezone('Asia/Jakarta')->toDateTimeString()
-                    : Carbon::parse($pickup->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
+                'scheduled_at' => Carbon::parse($pickup->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
@@ -118,6 +117,7 @@ class PickupRequestController extends Controller
         })->toArray();
 
         Log::info('Pickup data response: ' . json_encode($pickupData));
+
         return response()->json(['pickupData' => $pickupData]);
     }
 }
