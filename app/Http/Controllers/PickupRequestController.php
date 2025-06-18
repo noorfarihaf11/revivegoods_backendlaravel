@@ -112,8 +112,8 @@ class PickupRequestController extends Controller
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
                 'scheduled_at' => Carbon::parse($pickup->scheduled_at)
-                    ->timezone('Asia/Jakarta')
-                    ->toDateTimeString(), // atau ->toIso8601String() jika mau format ISO
+                    ->timezone('Asia/Jakarta') // Tambahkan ini!
+                    ->toIso8601String(), // Jadi: kirim dengan zona waktu +07:00
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
