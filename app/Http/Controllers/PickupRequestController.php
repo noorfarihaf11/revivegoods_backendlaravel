@@ -108,7 +108,7 @@ class PickupRequestController extends Controller
             // Pastikan scheduled_at tidak dikonversi ke zona waktu lain
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-             'scheduled_at' => Carbon::parse($pickup->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
+                'scheduled_at' => $pickup->scheduled_at?->toDateTimeString(),
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
