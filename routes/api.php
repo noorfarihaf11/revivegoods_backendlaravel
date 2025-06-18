@@ -37,6 +37,14 @@ Route::get('/test', function () {
     ]);
 });
 
+Route::get('/debug-timezone', function () {
+    return [
+        'now' => now()->toDateTimeString(),
+        'timezone' => config('app.timezone'),
+        'php_timezone' => date_default_timezone_get(),
+    ];
+});
+
 
 
 
