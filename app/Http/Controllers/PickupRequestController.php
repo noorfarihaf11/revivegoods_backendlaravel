@@ -109,7 +109,7 @@ class PickupRequestController extends Controller
         $pickupData = $pickupList->map(function ($pickup) {
             return [
                 'id_pickupreq' => $pickup->id_pickupreq,
-                'scheduled_at' => Carbon::parse($pickup->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
+               'scheduled_at' => $pickup->scheduled_at,
                 'address' => $pickup->address,
                 'status' => $pickup->status,
                 'total_coins' => $pickup->total_coins,
