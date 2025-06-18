@@ -74,7 +74,8 @@ class PickupRequestController extends Controller
         foreach ($pickupList as $pickup) {
             if (
                 $pickup->status === 'requested' &&
-                Carbon::now()->lessThanOrEqualTo($pickup->scheduled_at->subHours(3))
+                $pickup->scheduled_at && // pastikan tidak null
+                Carbon::now()->lessThanOrEqualTo(Carbon::parse($pickup->scheduled_at)->subHours(3))
             ) {
                 // Ubah status
                 $pickup->status = 'completed';
