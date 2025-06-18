@@ -52,6 +52,7 @@ class PickupRequestController extends Controller
             'pickup_request' => [
                 'id_pickupreq' => $pickupWithItems->id_pickupreq,
                 'status' => $pickupWithItems->status,
+              // SEBELUM
                 'scheduled_at' => Carbon::parse($pickupWithItems->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
                 'address' => $pickupWithItems->address,
                 'total_coins' => $pickupWithItems->total_coins,
