@@ -33,7 +33,7 @@ class PickupRequestController extends Controller
         $pickup = PickupRequest::create([
             'id_user' => $user->id_user,
             'scheduled_at' => $scheduledAt,
-            'status' => 'requested',
+            'status' => 'completed',
             'address' => $request->address,
             'total_coins' => $request->total_coins,
         ]);

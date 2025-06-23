@@ -20,21 +20,6 @@ class PickupRequest extends Model
         'scheduled_at' => 'datetime:Y-m-d H:i:s',
     ];
 
-     protected static function booted()
-    {
-        static::updated(function (PickupRequest $pickup) {
-            if (
-                $pickup->wasChanged('status') &&
-                $pickup->status === 'completed'
-            ) {
-                $user = $pickup->user;
-                if ($user) {
-                    $user->increment('coins', $pickup->total_coins);
-
-                }
-            }
-        });
-    }
 
     public function user()
     {
