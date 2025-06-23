@@ -75,63 +75,31 @@ class PickupRequestController extends Controller
     ]);
 }
 
-    public function getPickupData(Request $request)
-    {
-        $user = Auth::user();
+   public function getPickupData(Request $request)
+{
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
 
-        $pickupList = PickupRequest::where('id_user', $user->id_user)->get();
+    // Ambil pickup milik user, terbaru di atas
+    $pickupList = PickupRequest::where('id_user', $user->id_user)
+        ->orderByDesc('created_at')
+        ->get();
 
-        foreach ($pickupList as $pickup) {
-            // Gunakan waktu UTC dan bandingkan dengan sekarang (juga dalam UTC)
-            $scheduledAtUtc = Carbon::parse($pickup->scheduled_at);
-            $nowUtc = Carbon::now('UTC');
+    // Siapkan payload
+    $pickupData = $pickupList->map(function ($pickup) {
+        return [
+            'id_pickupreq' => $pickup->id_pickupreq,
+            // kirim zona +07 agar front-end tak perlu tebak
+            'scheduled_at' => Carbon::parse($pickup->scheduled_at)
+                                   ->timezone('Asia/Jakarta')
+                                   ->toIso8601String(),
+            'address'      => $pickup->address,
+            'status'       => $pickup->status,          // sudah 'completed' sejak awal
+            'total_coins'  => $pickup->total_coins,
+        ];
+    });
 
-            if (
-                $pickup->status === 'requested' &&
-                $scheduledAtUtc &&
-                $nowUtc->greaterThanOrEqualTo($scheduledAtUtc->addHours(3))
-            ) {
-                $pickup->status = 'completed';
-                $pickup->save();
+    return response()->json(['pickupData' => $pickupData], 200);
+}
 
-                $alreadyRewarded = CoinTransaction::where([
-                    ['id_user', '=', $pickup->id_user],
-                    ['source', '=', 'pickup'],
-                    ['amount', '=', $pickup->total_coins],
-                ])->exists();
-
-                if (!$alreadyRewarded) {
-                    CoinTransaction::create([
-                        'id_user' => $pickup->id_user,
-                        'type' => 'earn',
-                        'amount' => $pickup->total_coins,
-                        'source' => 'pickup',
-                    ]);
-
-                    $user = User::find($pickup->id_user);
-                    if ($user) {
-                        $user->coins += $pickup->total_coins;
-                        $user->save();
-                    }
-                }
-            }
-        }
-
-        $pickupData = $pickupList->map(function ($pickup) {
-            return [
-                'id_pickupreq' => $pickup->id_pickupreq,
-                'scheduled_at' => Carbon::parse($pickup->scheduled_at)
-                    ->timezone('Asia/Jakarta') // Tambahkan ini!
-                    ->toIso8601String(), // Jadi: kirim dengan zona waktu +07:00
-                'address' => $pickup->address,
-                'status' => $pickup->status,
-                'total_coins' => $pickup->total_coins,
-            ];
-        })->toArray();
-
-
-        Log::info('Pickup data response: ' . json_encode($pickupData));
-
-        return response()->json(['pickupData' => $pickupData]);
-    }
 }

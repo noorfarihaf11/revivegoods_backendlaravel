@@ -41,7 +41,7 @@ class ExchangeController extends Controller
             'id_exchangeitem' => $exchangeItem->id_exchangeitem,
             'status' => 'requested', // default: pending
              'address' => $request->address,// pastikan kolom 'address' ada
-            'coins' => $exchangeItem->coin_cost,
+            'coins' => $exchangeItem->id_exchangeitem,
         ]);
 
         // Kurangi coin user
