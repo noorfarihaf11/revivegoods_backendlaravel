@@ -7,64 +7,73 @@ use App\Models\User;
 use App\Models\CoinTransaction;
 use App\Models\PickupRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class PickupRequestController extends Controller
 {
-    public function store(Request $request)
-    {
-        $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.id_donationitem' => 'required|integer|exists:donation_items,id_donationitem',
-            'scheduled_at' => 'required|date',
-            'address' => 'required|string|max:255',
-            'total_coins' => 'required|integer|min:0',
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'items'                       => 'required|array|min:1',
+        'items.*.id_donationitem'     => 'required|integer|exists:donation_items,id_donationitem',
+        'scheduled_at'                => 'required|date',
+        'address'                     => 'required|string|max:255',
+        'total_coins'                 => 'required|integer|min:0',
+    ]);
 
-        /** @var User $user */
-        $user = Auth::user();
+    /** @var User $user */
+    $user = Auth::user();
 
-        // Simpan pickup request - konversi dari Asia/Jakarta ke UTC untuk disimpan
-        $scheduledAt = Carbon::parse($request->scheduled_at); // Biarkan waktu lokal
+    $scheduledAt = Carbon::parse($request->scheduled_at);  // WIB
 
+    $pickup = DB::transaction(function () use ($user, $request, $scheduledAt) {
 
+        // 1️⃣  Buat pickup request
         $pickup = PickupRequest::create([
-            'id_user' => $user->id_user,
-            'scheduled_at' => $scheduledAt,
-            'status' => 'completed',
-            'address' => $request->address,
-            'total_coins' => $request->total_coins,
+            'id_user'       => $user->id_user,
+            'scheduled_at'  => $scheduledAt,
+            'status'        => 'completed',          // langsung completed
+            'address'       => $request->address,
+            'total_coins'   => $request->total_coins,
         ]);
 
+        // 2️⃣  Simpan item-item
         foreach ($request->items as $item) {
             $pickup->items()->create([
                 'id_donationitem' => $item['id_donationitem'],
             ]);
         }
 
-        $pickupWithItems = PickupRequest::with(['items.donationItem'])
-            ->findOrFail($pickup->id_pickupreq);
+        // 3️⃣  Tambahkan koin user (atomic)
+        $user->increment('coins', $pickup->total_coins);
 
-        return response()->json([
-            'message' => 'Pickup request submitted successfully.',
-            'pickup_request' => [
-                'id_pickupreq' => $pickupWithItems->id_pickupreq,
-                'status' => $pickupWithItems->status,
-                // SEBELUM
-                'scheduled_at' => Carbon::parse($pickupWithItems->scheduled_at)->timezone('Asia/Jakarta')->toDateTimeString(),
-                'address' => $pickupWithItems->address,
-                'total_coins' => $pickupWithItems->total_coins,
-                'items' => $pickupWithItems->items->map(function ($item) {
-                    return [
-                        'id_donationitem' => $item->id_donationitem,
-                        'name' => $item->donationItem->name ?? '(Unknown)',
-                    ];
-                }),
-            ],
-        ]);
-    }
+        return $pickup;   // penting: kembalikan untuk dipakai di luar
+    });
+
+    // Ambil pickup + relasi untuk response
+    $pickup->load('items.donationItem');
+
+    return response()->json([
+        'message'        => 'Pickup request submitted successfully.',
+        'new_coin_total' => $user->coins,                 // saldo baru
+        'pickup_request' => [
+            'id_pickupreq' => $pickup->id_pickupreq,
+            'status'       => $pickup->status,
+            'scheduled_at' => Carbon::parse($pickup->scheduled_at)
+                                   ->timezone('Asia/Jakarta')
+                                   ->toDateTimeString(),
+            'address'      => $pickup->address,
+            'total_coins'  => $pickup->total_coins,
+            'items'        => $pickup->items->map(fn ($i) => [
+                'id_donationitem' => $i->id_donationitem,
+                'name'            => $i->donationItem->name ?? '(Unknown)',
+            ]),
+        ],
+    ]);
+}
 
     public function getPickupData(Request $request)
     {
