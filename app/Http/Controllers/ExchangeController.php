@@ -14,7 +14,8 @@ class ExchangeController extends Controller
   public function redeem(Request $request)
     {
         $request->validate([
-            'id_exchangeitem' => 'required|exists:exchange_items,id_exchangeitem'
+            'id_exchangeitem' => 'required|exists:exchange_items,id_exchangeitem',
+                'address' => 'required|string|max:255',
         ]);
 
          /** @var User $user */
@@ -38,7 +39,7 @@ class ExchangeController extends Controller
             'id_user' => $user->id_user,
             'id_exchangeitem' => $exchangeItem->id_exchangeitem,
             'status' => 'requested', // default: pending
-             'address' => $lastPickup ? $lastPickup->address : null, // pastikan kolom 'address' ada
+             'address' => $request->address,// pastikan kolom 'address' ada
         ]);
 
         // Kurangi coin user
