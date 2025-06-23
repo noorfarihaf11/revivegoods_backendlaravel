@@ -16,6 +16,7 @@ class ExchangeController extends Controller
         $request->validate([
             'id_exchangeitem' => 'required|exists:exchange_items,id_exchangeitem',
                 'address' => 'required|string|max:255',
+                'coins' => 'required|exists:exchange_items,coin_cost',
         ]);
 
          /** @var User $user */
@@ -40,6 +41,7 @@ class ExchangeController extends Controller
             'id_exchangeitem' => $exchangeItem->id_exchangeitem,
             'status' => 'requested', // default: pending
              'address' => $request->address,// pastikan kolom 'address' ada
+            'coins' => $exchangeItem->coin_cost,
         ]);
 
         // Kurangi coin user
